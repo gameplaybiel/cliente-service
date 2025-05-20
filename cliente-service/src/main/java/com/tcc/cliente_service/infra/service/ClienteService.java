@@ -4,6 +4,7 @@ import com.tcc.cliente_service.application.dto.PedidoRequest;
 import com.tcc.cliente_service.application.dto.PedidoResponse;
 import com.tcc.cliente_service.domain.model.Cliente;
 import com.tcc.cliente_service.domain.repository.ClienteRepository;
+import com.tcc.cliente_service.infra.config.ServiceProperties;
 import org.springframework.http.*;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
@@ -15,12 +16,12 @@ import java.util.Optional;
 public class ClienteService {
     private final ClienteRepository clienteRepository;
     private final RestTemplate restTemplate;
-    private final String pedidosServiceUrl;
+    private final ServiceProperties properties;
 
-    public ClienteService(ClienteRepository clienteRepository, RestTemplate restTemplate, String pedidosServiceUrl) {
+    public ClienteService(ClienteRepository clienteRepository, RestTemplate restTemplate, ServiceProperties properties) {
         this.clienteRepository = clienteRepository;
         this.restTemplate = restTemplate;
-        this.pedidosServiceUrl = pedidosServiceUrl;
+        this.properties = properties;
     }
 
     public void salvarCliente(Cliente cliente) {
@@ -40,26 +41,30 @@ public class ClienteService {
     }
 
     public PedidoResponse criarPedidoParaCliente(Long clienteId, PedidoRequest pedidoRequest) {
-        // Verificar se o cliente existe
+        // 1. Verificar se cliente existe
         clienteRepository.findById(clienteId)
                 .orElseThrow(() -> new RuntimeException("Cliente não encontrado"));
 
-        // Configurar a requisição
+        // 2. Configurar headers
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(MediaType.APPLICATION_JSON);
 
+        // 3. Criar entidade da requisição
         HttpEntity<PedidoRequest> requestEntity = new HttpEntity<>(pedidoRequest, headers);
 
-        // Fazer a chamada REST
+        // 4. Obter URL do ServiceProperties
+        String url = properties.getPedidosUrl();
+
+        // 5. Fazer a chamada (usando a URL string, não o objeto ServicoProperties)
         ResponseEntity<PedidoResponse> response = restTemplate.exchange(
-                pedidosServiceUrl,
+                url,  // String com a URL
                 HttpMethod.POST,
                 requestEntity,
                 PedidoResponse.class
         );
 
         if (!response.getStatusCode().is2xxSuccessful()) {
-            throw new RuntimeException("Falha ao criar pedido - Status: " + response.getStatusCode());
+            throw new RuntimeException("Falha ao criar pedido");
         }
 
         return response.getBody();
