@@ -3,7 +3,6 @@ package com.tcc.cliente_service.infra.controller;
 import com.tcc.cliente_service.application.dto.ClienteDTO;
 import com.tcc.cliente_service.application.usecase.ClienteUseCase;
 import com.tcc.cliente_service.domain.model.Cliente;
-import com.tcc.cliente_service.infra.rabbitmq.ClienteEventPublisher;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -13,17 +12,14 @@ import java.util.List;
 @RequestMapping("/cliente")
 public class ClienteController {
     private final ClienteUseCase clienteUseCase;
-    private final ClienteEventPublisher clienteEventPublisher;
 
-    public ClienteController(ClienteUseCase clienteUseCase, ClienteEventPublisher clienteEventPublisher) {
+    public ClienteController(ClienteUseCase clienteUseCase) {
         this.clienteUseCase = clienteUseCase;
-        this.clienteEventPublisher = clienteEventPublisher;
     }
 
     @PostMapping
     public ResponseEntity<Cliente> criarCliente(@RequestBody ClienteDTO dto) {
         Cliente cliente = clienteUseCase.criarCliente(dto);
-        clienteEventPublisher.publicarClienteCriado(cliente);
         return ResponseEntity.ok(cliente);
     }
 
@@ -47,7 +43,6 @@ public class ClienteController {
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> deletarCliente(@PathVariable Long id) {
         clienteUseCase.deletarCliente(id);
-        clienteEventPublisher.publicarClienteDeletado(id);
         return ResponseEntity.noContent().build();
     }
 }
